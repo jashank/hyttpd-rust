@@ -1,3 +1,11 @@
+// Copyright 2015  Jashank Jeremy.
+//
+// Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+// option. This file may not be copied, modified, or distributed
+// except according to those terms.
+
 #![feature(ip_addr)]
 #![feature(path_ext)]
 
@@ -13,7 +21,8 @@ use hyper::net::HttpListener;
 
 const HOST: &'static str = "0.0.0.0";
 const PORT: usize = 8000usize;
-const SERVER_VERSION: &'static str = concat!("hyttpd/", env!("CARGO_PKG_VERSION"));
+const SERVER_VERSION: &'static str =
+    concat!("hyttpd/", env!("CARGO_PKG_VERSION"));
 
 const ERR_BAD_REQUEST: &'static [u8] =
     b"<html><body><h1>400 Bad Request</h1></body></html>";
@@ -121,7 +130,7 @@ fn request_handler(req: Request, mut res: Response) -> () {
         return ();
     }
 
-    if !exists && !is_dir {  
+    if !exists && !is_dir {
         *(res.status_mut()) = status::StatusCode::NotFound;
         println!("not found");
 
