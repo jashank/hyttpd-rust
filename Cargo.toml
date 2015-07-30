@@ -1,0 +1,8 @@
+[package]
+name = "hyttpd"
+version = "0.1.0"
+authors = ["Jashank Jeremy <jashank@rulingia.com>"]
+
+[dependencies]
+hyper = "*"
+chrono = "*"
