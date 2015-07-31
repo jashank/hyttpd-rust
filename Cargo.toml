@@ -6,3 +6,6 @@ authors = ["Jashank Jeremy <jashank@rulingia.com>"]
 [dependencies]
 hyper = "*"
 chrono = "*"
+
+[dependencies.clippy]
+git = "https://github.com/Manishearth/rust-clippy"

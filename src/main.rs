@@ -8,6 +8,8 @@
 
 #![feature(ip_addr)]
 #![feature(path_ext)]
+#![feature(plugin)]
+#![plugin(clippy)]
 
 extern crate hyper;
 extern crate chrono;
@@ -33,9 +35,13 @@ const ERR_INTERNAL_SERVER_ERROR: &'static [u8] =
 
 fn log_request(req: &Request) -> () {
     let dt = chrono::Local::now();
-    println!("{} [{}] {}:{} {:?}",
+    print!("{} [{}] {}:{} {:?}",
              req.remote_addr.ip(), dt.format("%Y-%m-%d %H:%M:%S"),
-             req.version, req.method, req.uri);
+             req.version, req.method, req.uri)
+}
+
+fn log_response(res: &Response, status: Result<(), String>) -> () {
+    print!(" => {}: {:?}\n", res.status(), status)
 }
 
 fn request_path(req: &Request) -> Option<String> {
@@ -83,6 +89,8 @@ fn render_directory(res: Response, dirname: String) -> () {
     let path_str = format!("./{}", dirname);
     let path = path::Path::new(&path_str);
 
+    log_response(&res, Err(format!("printing dirindex {}", path_str)));
+
     let mut res = res.start().unwrap();
     res.write(format!("<html><head><title>Index of {}</title></head>",
                       dirname).as_bytes()).unwrap();
@@ -109,15 +117,16 @@ fn render_directory(res: Response, dirname: String) -> () {
 fn request_handler(req: Request, mut res: Response) -> () {
     // Set server version in header.
     log_request(&req);
-    res.headers_mut().set(header::Server(SERVER_VERSION.to_string()));
+    res.headers_mut().set(header::Server(SERVER_VERSION.to_owned()));
 
     let file_path_str: String = match request_path(&req) {
         Some(v) => v,
         None => {
             *(res.status_mut()) = status::StatusCode::BadRequest;
-            println!("invalid URI");
 
+            log_response(&res, Err("invalid URI".to_owned()));
             res.send(ERR_BAD_REQUEST).unwrap();
+
             return;
         }
     };
@@ -132,9 +141,10 @@ fn request_handler(req: Request, mut res: Response) -> () {
 
     if !exists && !is_dir {
         *(res.status_mut()) = status::StatusCode::NotFound;
-        println!("not found");
 
+        log_response(&res, Err("not found".to_owned()));
         res.send(ERR_NOT_FOUND).unwrap();
+
         return;
     }
 
@@ -142,16 +152,19 @@ fn request_handler(req: Request, mut res: Response) -> () {
         Ok(v)  => v,
         Err(e) => {
             *(res.status_mut()) = status::StatusCode::InternalServerError;
-            println!("can't open {:?}: {}", file_path, e);
 
+            log_response(&res, Err(format!("can't open {:?}: {}", file_path, e)));
             res.send(ERR_INTERNAL_SERVER_ERROR).unwrap();
+
             return;
         }
     };
 
     {
+        log_response(&res, Ok(()));
         let mut res = res.start().unwrap();
         let mut buf = io::BufReader::new(f);
+        println!("start write");
         loop {
             let consumed = match buf.fill_buf() {
                 Ok(bytes) => { res.write(bytes).unwrap(); bytes.len() },
@@ -160,6 +173,7 @@ fn request_handler(req: Request, mut res: Response) -> () {
             buf.consume(consumed);
             if consumed == 0 { break; }
         };
+        println!("end write");
         res.end().unwrap();
     };
 }
